@@ -5,7 +5,7 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here')
+          'mlbench', 'h2o', 'here', "rattle")
 
 
 install_all_packages <- function () {
@@ -28,8 +28,8 @@ create_model <- function(BD,
                          cp = 0.01, 
                          kfold = 10, 
                          prob_aug=0.9) {
-  BD = as.data.frame(unclass(BD), stringsAsFactors = TRUE)
-  BD = BD[complete.cases(BD),] #or BD = na.omit(BD)
+  # BD = as.data.frame(unclass(BD), stringsAsFactors = TRUE)
+  # BD = BD[complete.cases(BD),] #or BD = na.omit(BD)
   yname <- colnames(BD[ycol])
   #plot_correlation(BD)
   #plot_prcomp(BD)
