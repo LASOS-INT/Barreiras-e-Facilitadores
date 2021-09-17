@@ -5,7 +5,7 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here', "rattle")
+          'mlbench', 'h2o', 'here', "rattle", "MLmetrics")
 
 
 install_all_packages <- function () {
@@ -15,6 +15,24 @@ install_all_packages <- function () {
 
 load_library_packages <- function() {
   lapply(packs, library, character.only = T, logical.return = TRUE)
+}
+
+
+
+data_augmentation <- function(ycol, prob_aug, train_data, yname, maj_class, min_classes){
+  train_data.aug <- train_data
+  for(i in length(min_classes)){
+    n = nrow(train_data[train_data[yname]==maj_class,]) - nrow(train_data[train_data[yname]==min_classes[i],])
+    j=1
+    while(j<n){
+      cand = GenerateMultipleCandidates(data=train_data, Class=min_classes[i], col=ycol, Prob=prob_aug, amount=1)
+      if(!anyNA(cand)){
+        train_data.aug <<- rbind(train_data.aug, cand)
+        j=j+1
+      }
+    }
+  }  
+  train_data.aug
 }
 
 
