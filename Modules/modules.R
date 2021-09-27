@@ -5,7 +5,7 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify")
+          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne")
 
 
 install_all_packages <- function () {
