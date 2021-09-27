@@ -10,7 +10,7 @@
 .csv
 /Data/.csv
 /Data/.xlsx
-
+/Data
 
 # User-specific files
 .Ruserdata
