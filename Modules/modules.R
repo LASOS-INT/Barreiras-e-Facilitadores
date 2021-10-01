@@ -32,7 +32,7 @@ data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_au
   train_data.aug <- train_data
   for(i in length(min_classes)){
     n = nrow(train_data[train_data[yname]==maj_class,]) - nrow(train_data[train_data[yname]==min_classes[i],])
-    j=1
+    j=0
     while(j<n){
       cand = GenerateMultipleCandidates(data=train_data, Class=min_classes[i], col=ycol, Prob=prob_aug, amount=1)
       if(!anyNA(cand)){
