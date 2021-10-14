@@ -95,3 +95,77 @@ fit_model <- function(model_method, model_metric, trControl_func, train_data, te
 #   pred.aug <<- predict(modelo.aug, teste)
 #   confM.aug <<- confusionMatrix(pred.aug, teste[,ycol])
 # }
+
+
+
+# tsne_df -> A dataset with x and y information for each  row
+# rows -> a boolean vector sinalazing the rows where we want to calculate that distance
+
+distance_to_centroids <- function(tsne_df, rows, pos_class, neg_class){
+
+  filtered_df <- if(!hasArg(rows)) tsne_df else tsne_df[rows, ]
+  # Defining the positive class centroid point
+  pos_class_centroid_x <- mean(tsne_df[tsne_df["colour"] == pos_class, ]$x)
+  pos_class_centroid_y <- mean(tsne_df[tsne_df["colour"] == pos_class, ]$y)
+
+  # Defining the negative class centroid point
+  neg_class_centroid_x <- mean(tsne_df[tsne_df["colour"] == neg_class, ]$x)
+  neg_class_centroid_y <- mean(tsne_df[tsne_df["colour"] == neg_class, ]$y)
+
+  # Calculating the euclidian distance
+  d_pos_class <- ( (pos_class_centroid_x - filtered_df$x)^2  + (pos_class_centroid_y - filtered_df$y)^2  )^0.5
+  d_neg_class <-  ( (neg_class_centroid_x - filtered_df$x)^2  + (neg_class_centroid_y - filtered_df$y)^2  )^0.5
+  distances_df <- data.frame(
+      id = rownames(filtered_df),
+      d1 = d_pos_class,
+      d2 = d_neg_class
+  )
+
+  return(distances_df)
+    
+}
+
+outliers_checker <- function(distances, dataset, y) {
+
+  # Defining varibles
+  dmin <- floor(min(distances$d1 - distances$d2))
+  dmax <- ceiling(max(distances$d1 - distances$d2))
+  best_model <- list(alpha=dmin, Kappa=0, dataset=NULL)
+  possible_alphas <- seq(dmin, dmax, 0.5)
+
+  # Creating partitions
+  set.seed(2)
+  train_list <- createDataPartition(dataset[, y], p=0.7, list=FALSE)
+  train <- pa_dataset_copy[train_list,]
+  test <- pa_dataset_copy[-train_list,]
+  rows <- rownames(train[train[, "outlier"] == TRUE, ])
+  train_distances <- distances[distances$id  %in% rows, ]
+  kappa_x_alpha <- data.frame(kappa=NULL, alpha=NULL, remaining_data=NULL)
+
+
+  for (alpha in possible_alphas){
+      train_copy <- train
+      rejected <- !(train_distances$d2 + alpha <  train_distances$d1)
+      train_copy[train_copy$outlier, ]$outlier <- train_copy[train_copy$outlier, ]$outlier & rejected
+
+      train_copy <- train_copy[!train_copy$outlier, ]
+    
+      model <- fit_model(
+          model_method="rpart",
+          model_metric="Kappa",
+          trControl_func = trainControl(method = "cv"),
+          train_data = train_copy,
+          test_data=test,
+          yname=y,
+          length = 3
+      )
+      kappa <-  model$matrix$overall["Kappa"]
+      kappa_x_alpha <- rbind(kappa_x_alpha, data.frame(kappa=unname(kappa), alpha=alpha))
+      if(best_model$Kappa < kappa){
+          best_model$alpha <- alpha
+          best_model$Kappa <- kappa
+          best_model$remaining_data <-  rownames(train_copy)
+      }
+  }
+  return(list(best_model = best_model, kappa_x_alpha=kappa_x_alpha))
+}

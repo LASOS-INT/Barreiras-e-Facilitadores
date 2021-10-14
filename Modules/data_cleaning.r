@@ -94,69 +94,7 @@ before_dataset <- df[, !(names(df) %in% output_variables)]
 pa_dataset <-  df[, !(names(df) %in% output_variables[-(3)])]
 sedentary_dataset <- df[, !(names(df) %in% output_variables[-(1)])]
 intesity_dataset <- df[, !(names(df) %in% output_variables[-(2)])]
-before_dataset <- before_dataset
-pa_dataset <- pa_dataset
-sedentary_dataset <- sedentary_dataset
-intesity_dataset <- intesity_dataset
-
-
-df_copy <- df
-df_copy[, "strange_dp"] <- strange_dp
-df_copy[, "strange_p"] <- strange_p
-has_tag_depression <- df$TAG == "1" | df$depression  == "1" 
-df_copy[, "has_tag_depression"] <- has_tag_depression
-dummy <- dummyVars(" ~ .", data=before_dataset)
-before_encoded_dataset <- data.frame(predict(dummy, newdata = before_dataset)) 
-
-before_encoded_dataset.pca <- prcomp(before_encoded_dataset , center = TRUE,scale. = TRUE)
-summary(before_encoded_dataset.pca) 
-
-autoplot(before_encoded_dataset.pca, colour="PA_practice_before", data=before_dataset)
-
-tsne <- Rtsne(before_encoded_dataset, dims = 2, perplexity=30, check_duplicates = FALSE, verbose=TRUE)
-
-metadata <- data.frame(sample_id = rownames(df_copy),
-                       colour = df_copy$PA_practice_before )
-tsne_df <- data.frame(
-    x = tsne$Y[,1],
-    y = tsne$Y[,2],
-    colour = metadata$colour)
-
-ggplot(tsne_df, aes(x, y, colour = colour)) + geom_point()
-
-metadata <- data.frame(sample_id = rownames(df_copy),
-                       colour = df_copy$PA_practice_during )
-tsne_df <- data.frame(
-    x = tsne$Y[,1],
-    y = tsne$Y[,2],
-    colour = metadata$colour)
-
-ggplot(tsne_df, aes(x, y, colour = colour)) + geom_point()
-
-metadata <- data.frame(sample_id = rownames(df_copy),
-                       colour = df_copy$strange_dp)
-tsne_df <- data.frame(
-    x = tsne$Y[,1],
-    y = tsne$Y[,2],
-    colour = metadata$colour)
-
-ggplot(tsne_df, aes(x, y, colour = colour)) + geom_point()
-
-metadata <- data.frame(sample_id = rownames(df_copy),
-                       colour = df_copy$strange_p)
-tsne_df <- data.frame(
-    x = tsne$Y[,1],
-    y = tsne$Y[,2],
-    colour = metadata$colour)
-
-ggplot(tsne_df, aes(x, y, colour = colour)) + geom_point()
-
-
-metadata <- data.frame(sample_id = rownames(df_copy),
-                       colour = df_copy$depression_anxiety)
-tsne_df <- data.frame(
-    x = tsne$Y[,1],
-    y = tsne$Y[,2],
-    colour = metadata$colour)
-
-ggplot(tsne_df, aes(x, y, colour = colour)) + geom_point()
+row.names(pa_dataset) <- NULL
+row.names(before_dataset) <- NULL
+row.names(sedentary_dataset) <- NULL
+row.names(intesity_dataset) <- NULL
