@@ -128,20 +128,20 @@ distance_to_centroids <- function(tsne_df, rows, pos_class, neg_class){
 outliers_checker <- function(distances, dataset, y) {
 
   # Defining varibles
-  dmin <- floor(min(distances$d1 - distances$d2))
-  dmax <- ceiling(max(distances$d1 - distances$d2))
-  best_model <- list(alpha=dmin, Kappa=0, dataset=NULL)
-  possible_alphas <- seq(dmin, dmax, 0.5)
+  best_model <- list(alpha=NULL, Kappa=0, dataset=NULL)
+  possible_alphas <- distances$d1 - distances$d2
+  dmin <- floor(min(possible_alphas))
+  possible_alphas <- append(possible_alphas, dmin)
+  possible_alphas <- sort(possible_alphas)
 
   # Creating partitions
   set.seed(2)
   train_list <- createDataPartition(dataset[, y], p=0.7, list=FALSE)
-  train <- pa_dataset_copy[train_list,]
-  test <- pa_dataset_copy[-train_list,]
+  train <- dataset[train_list,]
+  test <- dataset[-train_list,]
   rows <- rownames(train[train[, "outlier"] == TRUE, ])
   train_distances <- distances[distances$id  %in% rows, ]
   kappa_x_alpha <- data.frame(kappa=NULL, alpha=NULL, remaining_data=NULL)
-
 
   for (alpha in possible_alphas){
       train_copy <- train
@@ -149,7 +149,8 @@ outliers_checker <- function(distances, dataset, y) {
       train_copy[train_copy$outlier, ]$outlier <- train_copy[train_copy$outlier, ]$outlier & rejected
 
       train_copy <- train_copy[!train_copy$outlier, ]
-    
+      train_copy[, ncol(train_copy)] <- NULL
+      set.seed(2)
       model <- fit_model(
           model_method="rpart",
           model_metric="Kappa",
@@ -164,8 +165,13 @@ outliers_checker <- function(distances, dataset, y) {
       if(best_model$Kappa < kappa){
           best_model$alpha <- alpha
           best_model$Kappa <- kappa
-          best_model$remaining_data <-  rownames(train_copy)
+          best_model$remaining_data <-  c(rownames(train_copy), rownames(test) )
       }
   }
   return(list(best_model = best_model, kappa_x_alpha=kappa_x_alpha))
+}
+
+fbeta <- function (data, lev=NULL, model = NULL){
+    fb_val <- FBeta_Score(data$obs, data$pred, positive="practice", beta = 0.1)
+    c(FB = fb_val)
 }

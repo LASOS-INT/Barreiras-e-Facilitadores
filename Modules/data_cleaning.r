@@ -28,13 +28,17 @@ df$PA_intensity_before[df$PA_intensity_before == 4] <- 0
 df$PA_intensity_during[df$PA_intensity_during == 4] <- 0
 df$PA_duration_before[df$PA_duration_before == 5] <- 0
 
+df$sedentary_time_range_during[df$sedentary_time_range_during < 5] <- "less_then_8_hours"
+df$sedentary_time_range_during[df$sedentary_time_range_during == 5] <- "8_hour_or_more"
+
+df$sedentary_time_range_before[df$sedentary_time_range_before < 5] <- "less_then_8_hours"
+df$sedentary_time_range_before[df$sedentary_time_range_before == 5] <- "8_hour_or_more"
 
 numeric_columns = c(
     'age_range',
     'rooms_range',
     'income_range',
     'scholarity',
-    'sedentary_time_range_before',
     'co.resident_range',
     "PA_weekly_frequency_before",
     'PA_intensity_before',
@@ -94,7 +98,9 @@ before_dataset <- df[, !(names(df) %in% output_variables)]
 pa_dataset <-  df[, !(names(df) %in% output_variables[-(3)])]
 sedentary_dataset <- df[, !(names(df) %in% output_variables[-(1)])]
 intesity_dataset <- df[, !(names(df) %in% output_variables[-(2)])]
+
 row.names(pa_dataset) <- NULL
 row.names(before_dataset) <- NULL
 row.names(sedentary_dataset) <- NULL
 row.names(intesity_dataset) <- NULL
+pa_dataset
