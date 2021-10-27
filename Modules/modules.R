@@ -30,11 +30,12 @@ load_library_packages <- function() {
 
 data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_aug=0.9, ycol){
   train_data.aug <- train_data
-  for(i in length(min_classes)){
-    n = nrow(train_data[train_data[yname]==maj_class,]) - nrow(train_data[train_data[yname]==min_classes[i],])
+  for(min in min_classes){
+    print("entrei")
+    n = nrow(train_data[train_data[yname]==maj_class,]) - nrow(train_data[train_data[yname]==min,])
     j=0
     while(j<n){
-      cand = GenerateMultipleCandidates(data=train_data, Class=min_classes[i], col=ycol, Prob=prob_aug, amount=1)
+      cand = GenerateMultipleCandidates(data=train_data, Class=min, col=ycol, Prob=prob_aug, amount=1)
       if(!anyNA(cand)){
         train_data.aug <- rbind(train_data.aug, cand)
         j=j+1
@@ -150,8 +151,9 @@ outliers_checker <- function(distances, dataset, y) {
 
       train_copy <- train_copy[!train_copy$outlier, ]
       train_copy[, ncol(train_copy)] <- NULL
+      #print(dim(train_copy))
       set.seed(2)
-      model <- fit_model(
+      model <- fit_model(  
           model_method="rpart",
           model_metric="Kappa",
           trControl_func = trainControl(method = "cv"),
@@ -161,6 +163,7 @@ outliers_checker <- function(distances, dataset, y) {
           length = 3
       )
       kappa <-  model$matrix$overall["Kappa"]
+      #print(kappa)
       kappa_x_alpha <- rbind(kappa_x_alpha, data.frame(kappa=unname(kappa), alpha=alpha))
       if(best_model$Kappa < kappa){
           best_model$alpha <- alpha
