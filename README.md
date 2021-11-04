@@ -1,2 +1,2 @@
 # Barreiras-e-Facilitadores
-Projeto para análise de dados do banco sobre barreiras e facilitadores
+Project to analyze the database on barriers and facilitators to exercise during the pandemic
