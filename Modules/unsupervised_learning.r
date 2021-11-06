@@ -13,10 +13,10 @@ df_copy[, "has_tag_depression"] <- has_tag_depression
 dummy <- dummyVars(" ~ .", data=before_dataset)
 before_encoded_dataset <- data.frame(predict(dummy, newdata = before_dataset)) 
 
-before_encoded_dataset.pca <- prcomp(before_encoded_dataset , center = TRUE,scale. = TRUE)
-summary(before_encoded_dataset.pca) 
+# before_encoded_dataset.pca <- prcomp(before_encoded_dataset , center = TRUE,scale. = TRUE)
+# summary(before_encoded_dataset.pca) 
 
-autoplot(before_encoded_dataset.pca, colour="PA_practice_before", data=before_dataset)
+# autoplot(before_encoded_dataset.pca, colour="PA_practice_before", data=before_dataset)
 
 set.seed(2)
 tsne <- Rtsne(before_encoded_dataset, dims = 2, perplexity=100, check_duplicates = FALSE, verbose=TRUE)
@@ -91,25 +91,20 @@ distances_sp
 
 pa_dataset_copy <- pa_dataset
 pa_dataset_copy["outlier"] <- strange_dp
-outliers_result <- outliers_checker(distances_sdp, pa_dataset_copy, "PA_practice_during")
+outliers_result_sdp <- outliers_checker(distances_sdp, pa_dataset_copy, "PA_practice_during")
 
-plot <- outliers_result$kappa_x_alpha
+plot <- outliers_result_sdp$kappa_x_alpha
 ggplot(plot, aes(plot[, "alpha"], plot[, "kappa"] )) + geom_point()
-
-dim(pa_dataset)
-dim(pa_dataset[outliers_result$best_model$remaining_data, ])
-pa_dataset <- pa_dataset[outliers_result$best_model$remaining_data, ]
 
 pa_dataset_copy <- pa_dataset
-pa_dataset_copy["outlier"] <- strange_p[as.numeric(outliers_result$best_model$remaining_data)]
-outliers_result <- outliers_checker(distances_sp, pa_dataset_copy, "PA_practice_during")
+pa_dataset_copy["outlier"] <- strange_p
+outliers_result_sp <- outliers_checker(distances_sp, pa_dataset_copy, "PA_practice_during")
 
-plot <- outliers_result$kappa_x_alpha
+plot <- outliers_result_sp$kappa_x_alpha
 ggplot(plot, aes(plot[, "alpha"], plot[, "kappa"] )) + geom_point()
 
-dim(pa_dataset)
-dim(pa_dataset[outliers_result$best_model$remaining_data, ])
-pa_dataset <- pa_dataset[outliers_result$best_model$remaining_data, ]
+pa_train <- outliers_result_sdp$best_model$train
+pa_test <- outliers_result_sdp$best_model$test
 
 sedentery_dataset_copy <- sedentary_dataset
 sedentery_dataset_copy["outlier"] <- strange_dp
@@ -119,9 +114,6 @@ plot <- outliers_result$kappa_x_alpha
 
 ggplot(plot, aes(plot[, "alpha"], plot[, "kappa"] )) + geom_point()
 
-dim(sedentary_dataset)
-dim(sedentary_dataset[outliers_result$best_model$remaining_data, ])
-
 sedentary_dataset_copy <- sedentary_dataset
 sedentary_dataset_copy["outlier"] <- strange_p
 outliers_result <- outliers_checker(distances_sp, sedentary_dataset_copy, "sedentary_time_range_during")
@@ -129,28 +121,27 @@ outliers_result <- outliers_checker(distances_sp, sedentary_dataset_copy, "seden
 plot <- outliers_result$kappa_x_alpha
 ggplot(plot, aes(plot[, "alpha"], plot[, "kappa"] )) + geom_point()
 
-dim(sedentary_dataset)
-dim(sedentary_dataset[outliers_result$best_model$remaining_data, ])
-sedentary_dataset <- sedentary_dataset[outliers_result$best_model$remaining_data, ]
+sedentary_train <- outliers_result$best_model$train
+sedentary_test <- outliers_result$best_model$test
 
-pa_behavior_dataset_copy <- pa_behavior_dataset
-pa_behavior_dataset_copy["outlier"] <- strange_dp
-outliers_result <- outliers_checker(distances_sdp, pa_behavior_dataset_copy, "pa_behavior")
+table(pa_behavior_dataset[, "pa_behavior"])
+practice_before <- c("change_to_dont_practice", "still_practice")
+dont_practice_before <- c("change_to_practice", "still_dont_practice")
+pa_behavior_dataset_1 <- pa_behavior_dataset[pa_behavior_dataset$pa_behavior %in% practice_before, ]
 
-plot <- outliers_result$kappa_x_alpha
-ggplot(plot, aes(plot[, "alpha"], plot[, "kappa"] )) + geom_point()
+new_levels <- droplevels(pa_behavior_dataset_1[, "pa_behavior"], exclude = levels(pa_behavior_dataset_1[, "pa_behavior"]) %in% dont_practice_before)
+pa_behavior_dataset_1[, "pa_behavior"] <- new_levels
 
-dim(pa_behavior_dataset)
-dim(pa_behavior_dataset[outliers_result$best_model$remaining_data, ])
-pa_behavior_dataset <- pa_behavior_dataset[outliers_result$best_model$remaining_data, ]
+table(pa_behavior_dataset_1[, "pa_behavior"])
 
-pa_behavior_dataset_copy <- pa_behavior_dataset
-pa_behavior_dataset_copy["outlier"] <- strange_p[as.numeric(outliers_result$best_model$remaining_data)]
+
+
+pa_behavior_dataset_copy <- pa_behavior_dataset_1
+pa_behavior_dataset_copy["outlier"] <- strange_p[as.numeric(rownames(pa_behavior_dataset_1))]
 outliers_result <- outliers_checker(distances_sp, pa_behavior_dataset_copy, "pa_behavior")
 
 plot <- outliers_result$kappa_x_alpha
 ggplot(plot, aes(plot[, "alpha"], plot[, "kappa"] )) + geom_point()
 
-dim(pa_behavior_dataset)
-dim(pa_behavior_dataset[outliers_result$best_model$remaining_data, ])
-pa_behavior_dataset <- pa_behavior_dataset[outliers_result$best_model$remaining_data, ]
+pa_behavior_train <- outliers_result$best_model$train
+pa_behavior_test <- outliers_result$best_model$test

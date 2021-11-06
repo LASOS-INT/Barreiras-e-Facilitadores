@@ -31,7 +31,7 @@ load_library_packages <- function() {
 data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_aug=0.9, ycol){
   train_data.aug <- train_data
   for(min in min_classes){
-    print("entrei")
+    #print("entrei")
     n = nrow(train_data[train_data[yname]==maj_class,]) - nrow(train_data[train_data[yname]==min,])
     j=0
     while(j<n){
@@ -129,7 +129,7 @@ distance_to_centroids <- function(tsne_df, rows, pos_class, neg_class){
 outliers_checker <- function(distances, dataset, y) {
 
   # Defining varibles
-  best_model <- list(alpha=NULL, Kappa=0, dataset=NULL)
+  best_model <- list(alpha=NULL, Kappa=0, train=NULL, test=NULL)
   possible_alphas <- distances$d1 - distances$d2
   dmin <- floor(min(possible_alphas))
   possible_alphas <- append(possible_alphas, dmin)
@@ -168,7 +168,8 @@ outliers_checker <- function(distances, dataset, y) {
       if(best_model$Kappa < kappa){
           best_model$alpha <- alpha
           best_model$Kappa <- kappa
-          best_model$remaining_data <-  c(rownames(train_copy), rownames(test) )
+          best_model$train <- train_copy
+          best_model$test <- test
       }
   }
   return(list(best_model = best_model, kappa_x_alpha=kappa_x_alpha))
