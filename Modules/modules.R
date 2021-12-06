@@ -1,11 +1,11 @@
 packs = c('ggplot2', 'cowplot', 'randomForest',
           'caret', 'rpart.plot', 'readxl',
           'e1071', 'AugmenterR', 'smotefamily',
-          'ROSE', 'xgboost', 'ROCR', 
+          'ROSE', 'xgboost', 'pROC', 
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne")
+          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm")
 
 
 install_all_packages <- function () {
@@ -31,7 +31,7 @@ load_library_packages <- function() {
 data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_aug=0.9, ycol){
   train_data.aug <- train_data
   for(min in min_classes){
-    print("entrei")
+    #print("entrei")
     n = nrow(train_data[train_data[yname]==maj_class,]) - nrow(train_data[train_data[yname]==min,])
     j=0
     while(j<n){
@@ -46,12 +46,63 @@ data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_au
 }
 
 
+fit_model_th <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
+
+  form = as.formula(paste(yname,'~.'))
+
+  probs <- seq(.1, 0.9, by = 0.02)
+
+  model <<- train(
+    form, 
+    data=train_data, 
+    method=model_method, 
+    metric=model_metric, 
+    trControl=trControl_func, 
+    tuneLength=length
+  )
+
+  real <- as.numeric(factor(test_data[, yname]))-1
+
+  ths <- caret::thresholder(model,
+                    threshold = probs,
+                    final = TRUE,
+                    statistics = "all")
+
+  pred <<- predict(model, test_data, type="prob")
+
+  best_prob <- unname(filter(ths, Kappa == max(Kappa))["prob_threshold"])
+
+
+  # classify <- function (row) {
+  #     if(row["PA_practice_before"] == "dont_practice" && row["PA_practice_during"] == "dont_practice"){
+  #         "still_dont_practice"
+  #     } else if (row["PA_practice_before"] == "dont_practice" && row["PA_practice_during"] == "practice"){
+  #         "change_to_practice"
+  #     } else if (row["PA_practice_before"] == "practice" && row["PA_practice_during"] == "practice"){
+  #         "still_practice"
+  #     } else {
+  #         "change_to_dont_practice"
+  #     }
+
+  # }
+  print(pred)
+
+  #pred["class"] <- apply(pred, MARGIN=1, classify)
+}
+
 fit_model <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
 
   form = as.formula(paste(yname,'~.'))
-  model <<- train(form , data=train_data, method=model_method, metric=model_metric, trControl = trControl_func, tuneLength = length)
+
+  model <<- train(form, 
+                  data=train_data, 
+                  method=model_method, 
+                  metric=model_metric, 
+                  trControl=trControl_func, 
+                  tuneLength=length)
+
   pred <<- predict(model, test_data)
-  confM <<- confusionMatrix(pred, test_data[, yname])
+  confM <<- confusionMatrix(pred, test_data[, yname], mode="everything")
   return(list(matrix=confM, result=model))
 }
 
@@ -129,7 +180,7 @@ distance_to_centroids <- function(tsne_df, rows, pos_class, neg_class){
 outliers_checker <- function(distances, dataset, y) {
 
   # Defining varibles
-  best_model <- list(alpha=NULL, Kappa=0, dataset=NULL)
+  best_model <- list(alpha=NULL, Kappa=0, train=NULL, test=NULL)
   possible_alphas <- distances$d1 - distances$d2
   dmin <- floor(min(possible_alphas))
   possible_alphas <- append(possible_alphas, dmin)
@@ -168,7 +219,8 @@ outliers_checker <- function(distances, dataset, y) {
       if(best_model$Kappa < kappa){
           best_model$alpha <- alpha
           best_model$Kappa <- kappa
-          best_model$remaining_data <-  c(rownames(train_copy), rownames(test) )
+          best_model$train <- train_copy
+          best_model$test <- test
       }
   }
   return(list(best_model = best_model, kappa_x_alpha=kappa_x_alpha))
