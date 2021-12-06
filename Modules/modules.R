@@ -1,7 +1,7 @@
 packs = c('ggplot2', 'cowplot', 'randomForest',
           'caret', 'rpart.plot', 'readxl',
           'e1071', 'AugmenterR', 'smotefamily',
-          'ROSE', 'xgboost', 'ROCR', 
+          'ROSE', 'xgboost', 'pROC', 
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
@@ -46,12 +46,52 @@ data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_au
 }
 
 
+fit_model_th <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
+
+  form = as.formula(paste(yname,'~.'))
+
+  probs <- seq(.1, 0.9, by = 0.02)
+
+  model <<- train(
+    form, 
+    data=train_data, 
+    method=model_method, 
+    metric=model_metric, 
+    trControl=trControl_func, 
+    tuneLength=length
+  )
+
+  real <- as.numeric(factor(test_data[, yname]))-1
+
+  ths <- caret::thresholder(model,
+                    threshold = probs,
+                    final = TRUE,
+                    statistics = "all")
+
+  #pred <<- predict(model, test_data, type="prob")
+  #print(pred$pos)
+  #print(str(pred))
+
+  #print(filter(ths, Kappa == max(Kappa))["prob_threshold"])
+  #print(ths)
+  #return(list(matrix=confM, result=mode, threshold=ths))
+
+
+}
+
 fit_model <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
 
   form = as.formula(paste(yname,'~.'))
-  model <<- train(form , data=train_data, method=model_method, metric=model_metric, trControl = trControl_func, tuneLength = length)
+
+  model <<- train(form, 
+                  data=train_data, 
+                  method=model_method, 
+                  metric=model_metric, 
+                  trControl=trControl_func, 
+                  tuneLength=length)
+
   pred <<- predict(model, test_data)
-  confM <<- confusionMatrix(pred, test_data[, yname])
+  confM <<- confusionMatrix(pred, test_data[, yname], mode="everything")
   return(list(matrix=confM, result=model))
 }
 

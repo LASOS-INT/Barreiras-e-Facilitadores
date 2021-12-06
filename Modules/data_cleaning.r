@@ -10,6 +10,8 @@ dim(df)
 unique(sapply(df, class))
 head(df)
 
+table(df[, "age_range"])
+
 sports = c('running_before','hiking_before','cycling_before','muscle_training_before',
 'soccer_before','tennis_before','volleyball_before','basketball_before',
 'swimming_before','surfing_before','yoga_before','pilates_before',
@@ -53,6 +55,26 @@ convert_pa_behavior <- function (row) {
 
 
 df["pa_behavior"] <- apply(df, MARGIN=1, convert_pa_behavior)
+
+sed_behavior1 <- df[df$sedentary_time_range_before == "less_then_8_hours", ]
+sed_behavior2 <- df[df$sedentary_time_range_before == "8_hour_or_more", ]
+
+convert_sed_behavior <- function (row) {
+    if(row["sedentary_time_range_before"] == "less_then_8_hours" && row["sedentary_time_range_during"] == "less_then_8_hours"){
+        "still_not_sedentary"
+    } else if (row["sedentary_time_range_before"] == "8_hour_or_more" && row["sedentary_time_range_during"] == "8_hour_or_more"){
+        "still_sedentary"
+    } else if (row["sedentary_time_range_before"] == "8_hour_or_more" && row["sedentary_time_range_during"] == "less_then_8_hours"){
+        "change_to_not_sedentary"
+    } else {
+        "change_to_sedentary"
+    }
+
+}
+
+
+df["sedentary_behavior"] <- apply(df, MARGIN=1, convert_sed_behavior)
+table(df["sedentary_behavior"])
 
 numeric_columns = c(
     'age_range',
@@ -108,12 +130,13 @@ strange_dp <- df$PA_practice_before == "dont_practice" & differ_dp
 output_variables = c(
     "sedentary_time_range_during",
     "pa_behavior",
-    "PA_practice_during"
+    "PA_practice_during",
+    "sedentary_behavior"
 )
 
 before_dataset <- df[, !(names(df) %in% output_variables)]
 pa_dataset <-  df[, !(names(df) %in% output_variables[-(3)])]
 sedentary_dataset <- df[, !(names(df) %in% output_variables[-(1)])]
 pa_behavior_dataset <- df[, !(names(df) %in% append( output_variables[-(2)], "PA_practice_before"))]
-
+sedentary_behavior_dataset <- df[, !(names(df) %in% append( output_variables[-(4)], "sedentary_time_range_before"))]
 
