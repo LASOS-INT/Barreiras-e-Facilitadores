@@ -5,7 +5,7 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne")
+          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm")
 
 
 install_all_packages <- function () {
@@ -68,15 +68,26 @@ fit_model_th <- function(model_method, model_metric, trControl_func, train_data,
                     final = TRUE,
                     statistics = "all")
 
-  #pred <<- predict(model, test_data, type="prob")
-  #print(pred$pos)
-  #print(str(pred))
+  pred <<- predict(model, test_data, type="prob")
 
-  #print(filter(ths, Kappa == max(Kappa))["prob_threshold"])
-  #print(ths)
-  #return(list(matrix=confM, result=mode, threshold=ths))
+  best_prob <- unname(filter(ths, Kappa == max(Kappa))["prob_threshold"])
 
 
+  # classify <- function (row) {
+  #     if(row["PA_practice_before"] == "dont_practice" && row["PA_practice_during"] == "dont_practice"){
+  #         "still_dont_practice"
+  #     } else if (row["PA_practice_before"] == "dont_practice" && row["PA_practice_during"] == "practice"){
+  #         "change_to_practice"
+  #     } else if (row["PA_practice_before"] == "practice" && row["PA_practice_during"] == "practice"){
+  #         "still_practice"
+  #     } else {
+  #         "change_to_dont_practice"
+  #     }
+
+  # }
+  print(pred)
+
+  #pred["class"] <- apply(pred, MARGIN=1, classify)
 }
 
 fit_model <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
