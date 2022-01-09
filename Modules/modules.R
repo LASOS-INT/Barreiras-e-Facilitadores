@@ -5,7 +5,7 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'MASS', 'lsr', 'DescTools', 
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm")
+          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm", "MLeval")
 
 
 install_all_packages <- function () {
@@ -46,7 +46,9 @@ data_augmentation <- function(train_data, yname, maj_class, min_classes, prob_au
 }
 
 
-fit_model_th <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
+
+
+fit_model_thresholder <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname, best_th){
 
   form = as.formula(paste(yname,'~.'))
 
@@ -66,29 +68,59 @@ fit_model_th <- function(model_method, model_metric, trControl_func, train_data,
   ths <- caret::thresholder(model,
                     threshold = probs,
                     final = TRUE,
-                    statistics = "all")
+                    statistics = "all") 
 
+
+  chosen_prob <- best_th(ths)
+  print(chosen_prob)
   pred <<- predict(model, test_data, type="prob")
+  p = ggplot() + 
+  geom_line(data = ths, aes(x = prob_threshold,  y = Sensitivity, colour = "Sensitivity"), size=1) +
+  geom_line(data = ths, aes(x = prob_threshold, y = Specificity, colour = "Specificity"), size=1) +
+  scale_color_manual(name = "Metric", values = c("Sensitivity" = "darkblue", "Specificity" = "red")) + 
+  xlab('probability threshold')
 
-  best_prob <- unname(filter(ths, Kappa == max(Kappa))["prob_threshold"])
-
-
-  # classify <- function (row) {
-  #     if(row["PA_practice_before"] == "dont_practice" && row["PA_practice_during"] == "dont_practice"){
-  #         "still_dont_practice"
-  #     } else if (row["PA_practice_before"] == "dont_practice" && row["PA_practice_during"] == "practice"){
-  #         "change_to_practice"
-  #     } else if (row["PA_practice_before"] == "practice" && row["PA_practice_during"] == "practice"){
-  #         "still_practice"
-  #     } else {
-  #         "change_to_dont_practice"
-  #     }
-
-  # }
-  print(pred)
-
-  #pred["class"] <- apply(pred, MARGIN=1, classify)
+  print(p)
+  pred <- predict_out_of_probabilities(pred, chosen_prob)
+  confM <<- confusionMatrix(pred$class, test_data[, yname], mode="everything")
+  return(list(matrix=confM, result=model))
 }
+
+predict_out_of_probabilities <- function(pred, chosen_prob){
+  posName <- colnames(pred)[1]
+  negName <- colnames(pred)[2]
+  find_classes <- function (row) {
+    if(row[posName] >= chosen_prob){
+      posName
+    } else {
+      negName
+    }
+  }
+  pred["class"] <- apply(pred, MARGIN=1, find_classes)
+  pred$class <- as.factor(pred$class)
+  return(pred)
+}
+
+
+# fit_model <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
+
+#   form = as.formula(paste(yname,'~.'))
+
+#   model <<- train(form, 
+#                   data=train_data, 
+#                   method=model_method, 
+#                   metric=model_metric, 
+#                   trControl=trControl_func, 
+#                   tuneLength=length)
+  
+#   predProbs <- predict(model, test_data, type="prob")
+#   pred <- predict(model, test_data)
+#   probsDataFrame <- data.frame(predProbs, test_data[, yname])
+#   newpred <- predict_out_of_probabilities(predProbs, 0.5)
+
+#   confM <<- confusionMatrix(pred, test_data[, yname], mode="everything")
+#   return(list(matrix=confM, result=model, probDF=probsDataFrame))
+# }
 
 fit_model <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
 
@@ -227,6 +259,13 @@ outliers_checker <- function(distances, dataset, y) {
 }
 
 fbeta <- function (data, lev=NULL, model = NULL){
-    fb_val <- FBeta_Score(data$obs, data$pred, positive="practice", beta = 0.1)
+    fb_val <- FBeta_Score(data$obs, data$pred, beta = 0.5)
     c(FB = fb_val)
+}
+
+
+sensitivity_specificity_balanced <- function(data, lev=NULL, model = NULL){
+  Sensitivity <- caret::sensitivity(data$pred, data$obs)
+  names(Sensitivity) <- "Sens" 
+  sSensitivity
 }
