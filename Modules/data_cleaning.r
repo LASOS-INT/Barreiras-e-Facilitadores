@@ -32,10 +32,10 @@ df$PA_duration_before[df$PA_duration_before == 5] <- 0
 
 
 df$sedentary_time_range_during[df$sedentary_time_range_during < 5] <- "less_then_8_hours"
-df$sedentary_time_range_during[df$sedentary_time_range_during == 5] <- "8_hour_or_more"
+df$sedentary_time_range_during[df$sedentary_time_range_during == 5] <- "more_or_8_hours"
 
 df$sedentary_time_range_before[df$sedentary_time_range_before < 5] <- "less_then_8_hours"
-df$sedentary_time_range_before[df$sedentary_time_range_before == 5] <- "8_hour_or_more"
+df$sedentary_time_range_before[df$sedentary_time_range_before == 5] <- "more_or_8_hours"
 
 pa_behavior1 <- df[df$PA_practice_before == "practice", ]
 pa_behavior2 <- df[df$PA_practice_before == "dont_practice", ]
@@ -57,14 +57,14 @@ convert_pa_behavior <- function (row) {
 df["pa_behavior"] <- apply(df, MARGIN=1, convert_pa_behavior)
 
 sed_behavior1 <- df[df$sedentary_time_range_before == "less_then_8_hours", ]
-sed_behavior2 <- df[df$sedentary_time_range_before == "8_hour_or_more", ]
+sed_behavior2 <- df[df$sedentary_time_range_before == "more_or_8_hours", ]
 
 convert_sed_behavior <- function (row) {
     if(row["sedentary_time_range_before"] == "less_then_8_hours" && row["sedentary_time_range_during"] == "less_then_8_hours"){
         "still_not_sedentary"
-    } else if (row["sedentary_time_range_before"] == "8_hour_or_more" && row["sedentary_time_range_during"] == "8_hour_or_more"){
+    } else if (row["sedentary_time_range_before"] == "more_or_8_hours" && row["sedentary_time_range_during"] == "more_or_8_hours"){
         "still_sedentary"
-    } else if (row["sedentary_time_range_before"] == "8_hour_or_more" && row["sedentary_time_range_during"] == "less_then_8_hours"){
+    } else if (row["sedentary_time_range_before"] == "more_or_8_hours" && row["sedentary_time_range_during"] == "less_then_8_hours"){
         "change_to_not_sedentary"
     } else {
         "change_to_sedentary"
