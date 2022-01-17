@@ -122,20 +122,39 @@ predict_out_of_probabilities <- function(pred, chosen_prob){
 #   return(list(matrix=confM, result=model, probDF=probsDataFrame))
 # }
 
-fit_model <- function(model_method, model_metric, trControl_func, train_data, test_data, length=5, yname){
+fit_model <- function(model_method, model_metric, trControl_func, tunegrid, train_data, test_data, length=5, yname){
 
-  form = as.formula(paste(yname,'~.'))
+  if(missing(tunegrid)) {
 
-  model <<- train(form, 
-                  data=train_data, 
-                  method=model_method, 
-                  metric=model_metric, 
-                  trControl=trControl_func, 
-                  tuneLength=length)
+      form = as.formula(paste(yname,'~.'))
 
-  pred <<- predict(model, test_data)
-  confM <<- confusionMatrix(pred, test_data[, yname], mode="everything")
-  return(list(matrix=confM, result=model))
+      model <<- train(form, 
+                      data=train_data, 
+                      method=model_method, 
+                      metric=model_metric, 
+                      trControl=trControl_func, 
+                      tuneLength=length)
+
+      pred <<- predict(model, test_data)
+      confM <<- confusionMatrix(pred, test_data[, yname], mode="everything")
+      proc <- roc(unclass(test_data[, yname]), unclass(pred))
+      return(list(matrix=confM, result=model, roc=proc))
+    } else {
+      form = as.formula(paste(yname,'~.'))
+
+      model <<- train(form, 
+                      data=train_data, 
+                      method=model_method, 
+                      metric=model_metric, 
+                      trControl=trControl_func, 
+                      tuneGrid = tunegrid)
+                      
+
+      pred <<- predict(model, test_data)
+      confM <<- confusionMatrix(pred, test_data[, yname], mode="everything")
+      proc <- roc(unclass(test_data[, yname]), unclass(pred))
+      return(list(matrix=confM, result=model, roc=proc))
+    }
 }
 
 # create_model <- function(BD, 
