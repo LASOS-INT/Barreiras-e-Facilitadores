@@ -11,12 +11,6 @@ dim(df)
 unique(sapply(df, class))
 head(df)
 
-df_during <- read_excel(path = here('Data','during_dataset.xlsx'))
-df_during <- data.frame(df_during)
-dim(df_during)
-unique(sapply(df_during, class))
-head(df_during)
-
 sports = c('running_before','hiking_before','cycling_before','muscle_training_before',
 'soccer_before','tennis_before','volleyball_before','basketball_before',
 'swimming_before','surfing_before','yoga_before','pilates_before',
@@ -25,29 +19,18 @@ sports = c('running_before','hiking_before','cycling_before','muscle_training_be
 df[, "pa_number_before"] = rowSums(df[, sports])
 
 df <- df[complete.cases(df), ]
-df_during <- df_during[complete.cases(df_during), ]
+
 #row.names(df) <- NULL
 dim(df)
-dim(df_during)
 
 df$PA_practice_before[df$PA_practice_before == 0] <- "practice"
 df$PA_practice_before[df$PA_practice_before == 1] <- "dont_practice"
 df$PA_practice_during[df$PA_practice_during == 0] <- "practice"
 df$PA_practice_during[df$PA_practice_during == 1] <- "dont_practice"
 
-df_during$PA_practice_during[df_during$PA_practice_during == 0] <- 1
-df_during$PA_practice_during[df_during$PA_practice_during == 1] <- 0
-
-
-
-
 
 df$PA_intensity_before[df$PA_intensity_before == 4] <- 0
 df$PA_duration_before[df$PA_duration_before == 5] <- 0
-
-
-df_during$PA_intensity[df_during$PA_intensity == 4] <- 0
-df_during$PA_duration[df_during$PA_duration == 5] <- 0
 
 
 
@@ -56,10 +39,6 @@ df$sedentary_time_range_during[df$sedentary_time_range_during == 5] <- "8_hour_o
 
 df$sedentary_time_range_before[df$sedentary_time_range_before < 5] <- "less_then_8_hours"
 df$sedentary_time_range_before[df$sedentary_time_range_before == 5] <- "8_hour_or_more"
-
-df_during$sedentary_time_range_during[df_during$sedentary_time_range_during < 5] <- 0
-df_during$sedentary_time_range_during[df_during$sedentary_time_range_during == 5] <- 1
-
 
 df$PA_barrier_no_interest[df$PA_barrier_no_interest == 0] <- "no"
 df$PA_barrier_no_interest[df$PA_barrier_no_interest == 1] <- "yes"
@@ -70,15 +49,16 @@ df$PA_barrier_family_responsabilities[df$PA_barrier_family_responsabilities == 0
 df$PA_barrier_family_responsabilities[df$PA_barrier_family_responsabilities == 1] <- "yes"
 
 
-df$PA_dont_perceive_barriers[df$PA_dont_perceive_barriers == 0] <- "no"
-df$PA_dont_perceive_barriers[df$PA_dont_perceive_barriers == 1] <- "yes"
+df$PA_perceive_barriers[df$PA_perceive_barriers == 0] <- "no"
+df$PA_perceive_barriers[df$PA_perceive_barriers == 1] <- "yes"
+
+df$PA_barrier_places[df$PA_barrier_places == 0] <- "no"
+df$PA_barrier_places[df$PA_barrier_places == 1] <- "yes"
+
 
 
 df$PA_barrier_hard_work[df$PA_barrier_hard_work == 0] <- "no"
 df$PA_barrier_hard_work[df$PA_barrier_hard_work == 1] <- "yes"
-
-
-
 
 
 pa_behavior1 <- df[df$PA_practice_before == "practice", ]
@@ -140,7 +120,6 @@ df[, numeric_columns] <- lapply(df[, numeric_columns], as.integer)
 df[1, 2] < df[2, 2] 
 
 head(df[, numeric_columns])
-head(df_during)
 
 lapply(df, levels)[c("DA", "DP")]
 df <- subset(df, select = -c(DA, DP, state, zone))
@@ -178,8 +157,9 @@ output_variables = c(
     "sedentary_behavior",
     "PA_barrier_no_interest",
     "PA_barrier_family_responsabilities",
-    "PA_dont_perceive_barriers",
-    "PA_barrier_hard_work"
+    "PA_perceive_barriers",
+    "PA_barrier_hard_work",
+    'PA_barrier_places'
 )
 
 before_dataset <- df[, !(names(df) %in% output_variables)]
@@ -189,5 +169,6 @@ pa_behavior_dataset <- df[, !(names(df) %in% append( output_variables[-(2)], "PA
 sedentary_behavior_dataset <- df[, !(names(df) %in% append( output_variables[-(4)], "sedentary_time_range_before"))]
 no_interst_barrier_dataset <-  df[, !(names(df) %in% output_variables[-(5)])]
 family_responsabilities_barrier_dataset <- df[, !(names(df) %in% output_variables[-(6)])]
-dont_percieve_barriers_dataset <- df[, !(names(df) %in% output_variables[-(7)])]
+percieve_barriers_dataset <- df[, !(names(df) %in% output_variables[-(7)])]
 hard_work_barrier_dataset <- df[, !(names(df) %in% output_variables[-(8)])]
+places_barrier_dataset <- df[, !(names(df) %in% output_variables[-(9)])]
