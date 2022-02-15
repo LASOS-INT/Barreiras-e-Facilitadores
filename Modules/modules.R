@@ -1,8 +1,8 @@
 packs = c('ggplot2', 'cowplot', 'randomForest',
           'caret', 'rpart.plot', 'readxl',
           'e1071', 'AugmenterR', 'smotefamily',
-          'ROSE', 'xgboost', 'pROC', 
-          'MASS', 'lsr', 'DescTools', 
+          'ROSE', 'xgboost', 'pROC', 'klaR','patchwork', 'grid',
+          'MASS', 'lsr', 'DescTools', 'devtools',
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
           'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm", "MLeval")
@@ -283,8 +283,22 @@ fbeta <- function (data, lev=NULL, model = NULL){
 }
 
 
-sensitivity_specificity_balanced <- function(data, lev=NULL, model = NULL){
-  Sensitivity <- caret::sensitivity(data$pred, data$obs)
-  names(Sensitivity) <- "Sens" 
-  sSensitivity
+
+f1 <- function(ths){
+    
+  diff <- abs(ths$Sensitivity - ths$Specificity)
+  indexOfMin = match(min(diff), diff)
+  return(ths[indexOfMin, "prob_threshold"])
 }
+
+f2 <- function(ths){
+    desv <- function(x){
+      sd(c(unname(x["Sensitivity"]), unname(x["Specificity"])))
+    }
+    avg <- (ths$Sensitivity + ths$Specificity)/2
+    deviation <- apply(ths, desv, MARGIN=1)
+    metric <- avg - deviation
+    indexOfMin = match(max(metric), metric)
+    return(ths[indexOfMin, "prob_threshold"])
+}
+
