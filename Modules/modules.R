@@ -5,12 +5,52 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'MASS', 'lsr', 'DescTools', 'devtools',
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
-          'mlbench', 'h2o', 'here', "rattle", "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm", "MLeval")
+          'mlbench', 'h2o', 'here', "rattle", "pracma",
+           "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm", "MLeval", "fmsb")
 
 
 install_all_packages <- function () {
   lapply(packs, install.packages, character.only = T, logical.return = TRUE)
 }
+
+
+nearest_cluster <- function(modes, cluster){
+    cluster_mode <- modes[cluster, ]
+    diss_modes <- apply(modes, 1, function (row) sum(cluster_mode != row))
+
+    return(names(diss_modes[-(cluster)])[which.min(diss_modes[-(cluster)])])
+}
+
+
+
+silhouette_values <- function(num_clusters, df, diss_matrix, iters, s){
+
+      set.seed(s)
+      kmode <- kmodes(df, num_clusters, iter.max = iters, weighted = FALSE)
+      a <- c()
+      b <- c()
+      for(k in 1:num_clusters){
+            cluster <- kmode$cluster == k
+            nearest_k <- nearest_cluster(kmode$modes, k)
+
+            n_cluster <-  kmode$cluster == as.integer(nearest_k)
+            a_cluster <- rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+
+            b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+            a <- append(a, a_cluster)
+            b <-  append(b, b_cluster)
+      }
+      silhouette_coefficient <- (b-a)/pmax(b, a)
+      order <- as.character(sort(as.integer(names(silhouette_coefficient))))
+      silhouette_coefficient <- silhouette_coefficient[order]
+      silhouette_sc <- mean(silhouette_coefficient)
+
+
+      return(list(silhouette_sc, silhouette_coefficient, kmode))
+
+
+}
+
 
 
 load_library_packages <- function() {
@@ -282,6 +322,12 @@ fbeta <- function (data, lev=NULL, model = NULL){
     c(FB = fb_val)
 }
 
+
+kmodes_seed <- function (df, k, max_iter, seed){
+  set.seed(47)
+  kmode <- kmodes(df, k, iter.max = max_iter, weighted = FALSE)
+  return(kmode)
+}
 
 
 f1 <- function(ths){
