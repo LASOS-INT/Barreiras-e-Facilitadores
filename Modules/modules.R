@@ -348,3 +348,8 @@ f2 <- function(ths){
     return(ths[indexOfMin, "prob_threshold"])
 }
 
+
+f1_score <- function (data, lev=NULL, model = NULL){
+    fb_val <- FBeta_Score(data$obs, data$pred, beta = 1)
+    c(f1_score = fb_val)
+}
