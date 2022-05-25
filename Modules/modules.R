@@ -1,4 +1,4 @@
-packs = c('ggplot2', 'cowplot', 'randomForest',
+packs = c('ggplot2', 'cluster', 'cowplot', 'randomForest',
           'caret', 'rpart.plot', 'readxl',
           'e1071', 'AugmenterR', 'smotefamily',
           'ROSE', 'xgboost', 'pROC', 'klaR','patchwork', 'grid',
@@ -6,7 +6,7 @@ packs = c('ggplot2', 'cowplot', 'randomForest',
           'dplyr', 'kernlab', 'fastAdaboost', 
           'DataExplorer', 'dummies', 'lattice', 
           'mlbench', 'h2o', 'here', "rattle", "pracma",
-           "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm", "MLeval", "fmsb")
+           "MLmetrics", "ggfortify", "Rtsne", "obliqueRF", "gbm", "MLeval", "fmsb", "DescTools", "cba")
 
 
 install_all_packages <- function () {
@@ -21,9 +21,25 @@ nearest_cluster <- function(modes, cluster){
     return(names(diss_modes[-(cluster)])[which.min(diss_modes[-(cluster)])])
 }
 
+# nearest_clust_rock <- function(df, cluster_i, k, clusters){
+#   mode_i = unname(apply(clusteri, 2, modefunc))
+#   for(i in 1:k){
+    
+
+#       clusteri = df_during_barriers_facilitators[rockCluster(df_matrix, n=3, theta=0.5)$cl == 1, ]
+#       unname(apply(clusteri, 2, modefunc))
+#   }
+# }
+
+nearest_cluster_medoids <- function(medoid, df, meds){
+    cluster_medoid <- df[medoid, ]
+    diss_medoids <- apply(df[meds, ], 1, function (row) sum(cluster_medoid != row))
+    return(names(diss_medoids[-as.integer(medoid)])[which.min(diss_medoids[-as.integer(medoid)])])
+}
 
 
-silhouette_values <- function(num_clusters, df, diss_matrix, iters, s){
+
+silhouette_values_kmodes <- function(num_clusters, df, diss_matrix, iters, s){
 
       set.seed(s)
       kmode <- kmodes(df, num_clusters, iter.max = iters, weighted = FALSE)
@@ -50,6 +66,114 @@ silhouette_values <- function(num_clusters, df, diss_matrix, iters, s){
 
 
 }
+
+modefunc <- function(x){
+  Mode(as.numeric(x))
+}
+
+fisher_values_kmodes <- function(num_clusters, df, iters, s){
+
+  set.seed(s)
+  kmode <- kmodes(df, num_clusters, iter.max = iters, weighted = FALSE)
+  m <- unname(apply(df, 2, modefunc))
+  Sb <- 0
+  Sw <- 0
+  for(i in 1:num_clusters){
+      ni <- sum(kmode$cluster == i)
+      cluster_df <- df[kmode$cluster == i, ]
+      mi <- unname(apply(cluster_df, 2, modefunc))
+      Sb <- ni*(sum(mi != m)**2) + Sb
+
+      
+      Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
+  }
+  return(list(Sb/Sw, kmode))
+}
+
+
+
+
+fisher_values_rock <- function(num_clusters, theta, df){
+  df_matrix <- data.matrix(df) - 1
+  rock <- rockCluster(df_matrix, n=num_clusters, theta=theta)
+  m <- unname(apply(df, 2, modefunc))
+  Sb <- 0
+  Sw <- 0
+  for(i in 1:num_clusters){
+      ni <- sum(rock$cl == i)
+      cluster_df <- df[rock$cl == i, ]
+      mi <- unname(apply(cluster_df, 2, modefunc))
+      Sb <- ni*(sum(mi != m)**2) + Sb
+
+      
+      Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
+  }
+  return(list(Sb/Sw, rock))
+}
+
+silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix){
+      df_matrix <- data.matrix(df) - 1
+      rock <- rockCluster(df_matrix, n=num_clusters, theta=theta)
+      a <- c()
+      b <- c()
+      for(k in 1:num_clusters){
+            cluster <- rock$cl == k
+            nearest_k <- nearest_cluster(kmode$modes, k)
+
+            n_cluster <-  rock$cl == as.integer(nearest_k)
+            a_cluster <- rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+
+            b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+            a <- append(a, a_cluster)
+            b <-  append(b, b_cluster)
+      }
+      silhouette_coefficient <- (b-a)/pmax(b, a)
+      order <- as.character(sort(as.integer(names(silhouette_coefficient))))
+      silhouette_coefficient <- silhouette_coefficient[order]
+      silhouette_sc <- mean(silhouette_coefficient)
+
+
+      return(list(silhouette_sc, silhouette_coefficient, kmode))
+
+
+}
+
+
+
+
+silhouette_values_kmedoids <- function(num_clusters, df, diss_matrix){
+  kmedoids <- pam(diss_matrix, num_clusters, diss=TRUE)
+  a <- c()
+  b <- c()
+  # Para cada número de clusters
+  for(k in 1:num_clusters){
+  
+        cluster <- kmedoids$clustering == k
+        nearest_k <- match(nearest_cluster_medoids(kmedoids$medoids[k], df, kmedoids$medoids), kmedoids$medoids)
+
+        
+
+        n_cluster <-  kmedoids$clustering == as.integer(nearest_k)
+        a_cluster <- rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+
+        b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+
+        a <- append(a, a_cluster)
+        b <-  append(b, b_cluster)
+  }
+  silhouette_coefficient <- (b-a)/pmax(b, a)
+  # print(silhouette_coefficient)
+  order <- as.character(sort(as.integer(names(silhouette_coefficient))))
+  silhouette_coefficient <- silhouette_coefficient[order]
+
+  silhouette_sc <- mean(silhouette_coefficient)
+
+
+  return(list(silhouette_sc, silhouette_coefficient, kmedoids))
+
+
+}
+
 
 
 
