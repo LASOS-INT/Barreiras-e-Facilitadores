@@ -1,4 +1,4 @@
-packs = c('ggplot2', 'cluster', 'cowplot', 'randomForest',
+packs = c('ggplot2', 'cluster', 'cowplot', 'randomForest', 'reshape2',
           'caret', 'rpart.plot', 'readxl',
           'e1071', 'AugmenterR', 'smotefamily',
           'ROSE', 'xgboost', 'pROC', 'klaR','patchwork', 'grid',
@@ -45,14 +45,24 @@ silhouette_values_kmodes <- function(num_clusters, df, diss_matrix, iters, s){
       kmode <- kmodes(df, num_clusters, iter.max = iters, weighted = FALSE)
       a <- c()
       b <- c()
-      for(k in 1:num_clusters){
+      for (k in 1:num_clusters) {
             cluster <- kmode$cluster == k
             nearest_k <- nearest_cluster(kmode$modes, k)
-
             n_cluster <-  kmode$cluster == as.integer(nearest_k)
-            a_cluster <- rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
 
-            b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+
+            if (sum(cluster) == 1){
+              b_cluster <- sum(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+              a_cluster <- 0
+            } else if (sum(n_cluster) == 1) {
+              b_cluster <-  diss_matrix[cluster, n_cluster]/(sum(n_cluster))
+              a_cluster <-  rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+            } else {
+              b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+              a_cluster <-  rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+
+            }
+
             a <- append(a, a_cluster)
             b <-  append(b, b_cluster)
       }
@@ -93,9 +103,15 @@ fisher_values_kmodes <- function(num_clusters, df, iters, s){
 
 
 
-fisher_values_rock <- function(num_clusters, theta, df){
+fisher_values_rock <- function(num_clusters, theta, df, distance){
   df_matrix <- data.matrix(df) - 1
-  rock <- rockCluster(df_matrix, n=num_clusters, theta=theta)
+
+  if(distance == 1){
+    rock <- rockCluster(df_matrix, n=num_clusters, theta=theta)
+  } else if (distance == 2){
+    gdist <- function(x, y=NULL) (dist(x, y, method="euclidean")^2)/(ncol(df))
+    rock <- rockCluster(df_matrix, n=num_clusters, theta=theta, fun=gdist, funArgs=NULL)
+  }
   m <- unname(apply(df, 2, modefunc))
   Sb <- 0
   Sw <- 0
@@ -110,6 +126,28 @@ fisher_values_rock <- function(num_clusters, theta, df){
   }
   return(list(Sb/Sw, rock))
 }
+
+
+fisher_values_rock_distance2 <- function(num_clusters, theta, df){
+  df_matrix <- data.matrix(df) - 1
+ 
+  m <- unname(apply(df, 2, modefunc))
+  Sb <- 0
+  Sw <- 0
+  for(i in 1:num_clusters){
+      ni <- sum(rock$cl == i)
+      cluster_df <- df[rock$cl == i, ]
+      mi <- unname(apply(cluster_df, 2, modefunc))
+      Sb <- ni*(sum(mi != m)**2) + Sb
+
+      
+      Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
+  }
+  return(list(Sb/Sw, rock))
+}
+
+
+
 
 silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix){
       df_matrix <- data.matrix(df) - 1
