@@ -50,11 +50,11 @@ silhouette_values_kmodes <- function(num_clusters, df, diss_matrix, iters, s){
             nearest_k <- nearest_cluster(kmode$modes, k)
             n_cluster <-  kmode$cluster == as.integer(nearest_k)
 
-
             if (sum(cluster) == 1){
-              b_cluster <- sum(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
-              a_cluster <- 0
+              b_cluster <- 1
+              a_cluster <- 1
             } else if (sum(n_cluster) == 1) {
+             
               b_cluster <-  diss_matrix[cluster, n_cluster]/(sum(n_cluster))
               a_cluster <-  rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
             } else {
@@ -62,14 +62,16 @@ silhouette_values_kmodes <- function(num_clusters, df, diss_matrix, iters, s){
               a_cluster <-  rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
 
             }
-
             a <- append(a, a_cluster)
             b <-  append(b, b_cluster)
       }
+ 
       silhouette_coefficient <- (b-a)/pmax(b, a)
+      silhouette_sc <- mean(silhouette_coefficient)
+  
       order <- as.character(sort(as.integer(names(silhouette_coefficient))))
       silhouette_coefficient <- silhouette_coefficient[order]
-      silhouette_sc <- mean(silhouette_coefficient)
+
 
 
       return(list(silhouette_sc, silhouette_coefficient, kmode))
@@ -486,7 +488,7 @@ fbeta <- function (data, lev=NULL, model = NULL){
 
 
 kmodes_seed <- function (df, k, max_iter, seed){
-  set.seed(47)
+  set.seed(seed)
   kmode <- kmodes(df, k, iter.max = max_iter, weighted = FALSE)
   return(kmode)
 }
