@@ -94,10 +94,10 @@ fisher_values_kmodes <- function(num_clusters, df, iters, s){
       ni <- sum(kmode$cluster == i)
       cluster_df <- df[kmode$cluster == i, ]
       mi <- unname(apply(cluster_df, 2, modefunc))
-      Sb <- ni*(sum(mi != m)**2) + Sb
-
-      
-      Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
+      if(ni > 1){
+        Sb <- ni*(sum(mi != m)**2) + Sb
+        Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
+      }
   }
   return(list(Sb/Sw, kmode))
 }
