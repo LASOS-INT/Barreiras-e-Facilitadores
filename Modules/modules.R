@@ -14,12 +14,6 @@ install_all_packages <- function () {
 }
 
 
-nearest_cluster <- function(modes, cluster){
-    cluster_mode <- modes[cluster, ]
-    diss_modes <- apply(modes, 1, function (row) sum(cluster_mode != row))
-
-    return(names(diss_modes[-(cluster)])[which.min(diss_modes[-(cluster)])])
-}
 
 # nearest_clust_rock <- function(df, cluster_i, k, clusters){
 #   mode_i = unname(apply(clusteri, 2, modefunc))
@@ -37,6 +31,31 @@ nearest_cluster_medoids <- function(medoid, df, meds){
     return(names(diss_medoids[-as.integer(medoid)])[which.min(diss_medoids[-as.integer(medoid)])])
 }
 
+
+# db_index_kmodes <- function (num_clusters, df, diss_matrix, iters, s){
+#     set.seed(s)
+#     kmode <- kmodes(df, num_clusters, iter.max = iters, weighted = FALSE)
+#     Db_index <- 0
+#     for (i in 1:num_clusters) {
+#       Ri <- c()
+#       Rij <- c()
+#       for (j in 1:num_clusters) {
+#           if(j != i){
+#             clusteri <- kmode$cluster == i
+#             clusterj <- kmode$cluster == j
+#             ni <- sum(clusteri)
+#             nj <- sum(clusterj)
+#             Si <- if(ni > 1) sum(diss_matrix[clusteri, clusteri])/(ni-1) else 0
+#             Sj <- if(nj > 1) sum(diss_matrix[clusterj, clusterj])/(nj-1) else 0
+#             Mij <- sum(kmode$modes[i, ] != kmode$modes[j, ])
+#             Rij <- append(Rij, (Si + Sj)/Mij)
+#           }
+#       }
+#       Ri <- append(Ri, max(Rij))
+
+#     }
+#     return(sum(Ri)/num_clusters)
+# }
 
 
 silhouette_values_kmodes <- function(num_clusters, df, diss_matrix, iters, s){
@@ -68,11 +87,6 @@ silhouette_values_kmodes <- function(num_clusters, df, diss_matrix, iters, s){
  
       silhouette_coefficient <- (b-a)/pmax(b, a)
       silhouette_sc <- mean(silhouette_coefficient)
-  
-      order <- as.character(sort(as.integer(names(silhouette_coefficient))))
-      silhouette_coefficient <- silhouette_coefficient[order]
-
-
 
       return(list(silhouette_sc, silhouette_coefficient, kmode))
 
@@ -102,52 +116,54 @@ fisher_values_kmodes <- function(num_clusters, df, iters, s){
   return(list(Sb/Sw, kmode))
 }
 
+calisnki_values_kmodes <- function(num_clusters, df, iters, s){
 
-
-
-fisher_values_rock <- function(num_clusters, theta, df, distance){
-  df_matrix <- data.matrix(df) - 1
-
-  if(distance == 1){
-    rock <- rockCluster(df_matrix, n=num_clusters, theta=theta)
-  } else if (distance == 2){
-    gdist <- function(x, y=NULL) (dist(x, y, method="euclidean")^2)/(ncol(df))
-    rock <- rockCluster(df_matrix, n=num_clusters, theta=theta, fun=gdist, funArgs=NULL)
-  }
+  set.seed(s)
+  kmode <- kmodes(df, num_clusters, iter.max = iters, weighted = FALSE)
   m <- unname(apply(df, 2, modefunc))
-  Sb <- 0
-  Sw <- 0
+  BGSS <- 0
+  WGSS <- 0
   for(i in 1:num_clusters){
-      ni <- sum(rock$cl == i)
-      cluster_df <- df[rock$cl == i, ]
+      ni <- sum(kmode$cluster == i)
+      cluster_df <- df[kmode$cluster == i, ]
       mi <- unname(apply(cluster_df, 2, modefunc))
-      Sb <- ni*(sum(mi != m)**2) + Sb
-
-      
-      Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
+      if(ni > 1){
+        BGSS <- ni*(sum(mi != m)**2) + BGSS
+        WGSS <- sum(apply(cluster_df, 1, function(row) sum(row != kmode$modes[k, ] )**2))
+      }
   }
-  return(list(Sb/Sw, rock))
+  calisnki <- (BGSS*(nrow(df)-num_clusters))/(WGSS*(num_clusters-1))
+  return(list(calisnki, kmode))
 }
 
 
-fisher_values_rock_distance2 <- function(num_clusters, theta, df){
-  df_matrix <- data.matrix(df) - 1
- 
-  m <- unname(apply(df, 2, modefunc))
-  Sb <- 0
-  Sw <- 0
-  for(i in 1:num_clusters){
-      ni <- sum(rock$cl == i)
-      cluster_df <- df[rock$cl == i, ]
-      mi <- unname(apply(cluster_df, 2, modefunc))
-      Sb <- ni*(sum(mi != m)**2) + Sb
 
-      
-      Sw <- sum(unname(apply(cluster_df, 1, function (x) sum(unname(x) != mi)))**2) + Sw
-  }
-  return(list(Sb/Sw, rock))
+
+
+
+nearest_cluster <- function(modes, cluster){
+    cluster_mode <- modes[cluster, ]
+    diss_modes <- apply(modes, 1, function (row) sum(cluster_mode != row))
+
+    return(names(diss_modes[-(cluster)])[which.min(diss_modes[-(cluster)])])
 }
 
+
+nearest_cluster_rock <- function(cluster, df, num_clusters, cluster_mode, rock){
+  diff <- nrow(df)
+  n_cluster <- 0 
+  for(k in 1:num_clusters){
+    if(k != cluster){
+        n_cluster_mode <- unname(apply(df[rock$cl == k, ], 2, modefunc))
+        if(sum(n_cluster_mode != cluster_mode) < diff){
+          diff <- sum(n_cluster_mode != cluster_mode)
+          n_cluster <- k
+        }
+
+    }
+  }
+  return(n_cluster)
+}
 
 
 
@@ -158,22 +174,33 @@ silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix){
       b <- c()
       for(k in 1:num_clusters){
             cluster <- rock$cl == k
-            nearest_k <- nearest_cluster(kmode$modes, k)
+            cluster_mode <- unname(apply(df[cluster, ], 2, modefunc))
+            nearest_k <-nearest_cluster_rock(k, df, num_clusters, cluster_mode, rock)
 
             n_cluster <-  rock$cl == as.integer(nearest_k)
-            a_cluster <- rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
 
-            b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+            if (sum(cluster) == 1){
+              b_cluster <- 1
+              a_cluster <- 1
+            } else if (sum(n_cluster) == 1) {
+             
+              b_cluster <-  diss_matrix[cluster, n_cluster]/(sum(n_cluster))
+              a_cluster <-  rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+            } else {
+              b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
+              a_cluster <-  rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
+
+            }
             a <- append(a, a_cluster)
             b <-  append(b, b_cluster)
       }
       silhouette_coefficient <- (b-a)/pmax(b, a)
+      silhouette_sc <- mean(silhouette_coefficient)
+  
       order <- as.character(sort(as.integer(names(silhouette_coefficient))))
       silhouette_coefficient <- silhouette_coefficient[order]
-      silhouette_sc <- mean(silhouette_coefficient)
 
-
-      return(list(silhouette_sc, silhouette_coefficient, kmode))
+      return(list(silhouette_sc, silhouette_coefficient, rock))
 
 
 }
