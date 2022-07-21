@@ -141,6 +141,7 @@ calisnki_values_kmodes <- function(num_clusters, df, iters, s){
 
 
 
+
 nearest_cluster <- function(modes, cluster){
     cluster_mode <- modes[cluster, ]
     diss_modes <- apply(modes, 1, function (row) sum(cluster_mode != row))
@@ -167,11 +168,42 @@ nearest_cluster_rock <- function(cluster, df, num_clusters, cluster_mode, rock){
 
 
 
-silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix){
+
+
+calisnki_values_rock <- function(num_clusters, theta, df, distmethod){
+  df_matrix <- data.matrix(df) - 1
+  rock <- rockCluster(df_matrix, n=num_clusters, theta=theta, fun = "dist", funArgs = list(method=distmethod))
+  if (max(as.integer(rock$cl)) > num_clusters){
+    return(list(-1, rock))
+  }
+  m <- unname(apply(df, 2, modefunc))
+  BGSS <- 0
+  WGSS <- 0
+  for(i in 1:num_clusters){
+      ni <- sum(rock$cl == i)
+      cluster_df <- df[rock$cl == i, ]
+      mi <- unname(apply(cluster_df, 2, modefunc))
+      if(ni > 1){
+        BGSS <- ni*(sum(mi != m)**2) + BGSS
+        m_cluster <- unname(apply(cluster_df, 2, modefunc))
+
+        WGSS <- sum(apply(cluster_df, 1, function(row) sum(row != m_cluster)**2))
+      }
+  }
+  calisnki <- (BGSS*(nrow(df)-num_clusters))/(WGSS*(num_clusters-1))
+  return(list(calisnki, rock))
+}
+
+
+
+silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix, distmethod){
       df_matrix <- data.matrix(df) - 1
-      rock <- rockCluster(df_matrix, n=num_clusters, theta=theta)
+      rock <- rockCluster(df_matrix, n=num_clusters, theta=theta, fun = "dist", funArgs = list(method=distmethod))
       a <- c()
       b <- c()
+      if (max(as.integer(rock$cl)) > num_clusters){
+        return(list(-1, -1, rock))
+      }
       for(k in 1:num_clusters){
             cluster <- rock$cl == k
             cluster_mode <- unname(apply(df[cluster, ], 2, modefunc))
@@ -196,50 +228,13 @@ silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix){
       }
       silhouette_coefficient <- (b-a)/pmax(b, a)
       silhouette_sc <- mean(silhouette_coefficient)
-  
       order <- as.character(sort(as.integer(names(silhouette_coefficient))))
       silhouette_coefficient <- silhouette_coefficient[order]
-
       return(list(silhouette_sc, silhouette_coefficient, rock))
-
-
 }
 
 
 
-
-silhouette_values_kmedoids <- function(num_clusters, df, diss_matrix){
-  kmedoids <- pam(diss_matrix, num_clusters, diss=TRUE)
-  a <- c()
-  b <- c()
-  # Para cada número de clusters
-  for(k in 1:num_clusters){
-  
-        cluster <- kmedoids$clustering == k
-        nearest_k <- match(nearest_cluster_medoids(kmedoids$medoids[k], df, kmedoids$medoids), kmedoids$medoids)
-
-        
-
-        n_cluster <-  kmedoids$clustering == as.integer(nearest_k)
-        a_cluster <- rowSums(diss_matrix[cluster, cluster])/(sum(cluster)-1)
-
-        b_cluster <- rowSums(diss_matrix[cluster, n_cluster])/(sum(n_cluster))
-
-        a <- append(a, a_cluster)
-        b <-  append(b, b_cluster)
-  }
-  silhouette_coefficient <- (b-a)/pmax(b, a)
-  # print(silhouette_coefficient)
-  order <- as.character(sort(as.integer(names(silhouette_coefficient))))
-  silhouette_coefficient <- silhouette_coefficient[order]
-
-  silhouette_sc <- mean(silhouette_coefficient)
-
-
-  return(list(silhouette_sc, silhouette_coefficient, kmedoids))
-
-
-}
 
 
 
