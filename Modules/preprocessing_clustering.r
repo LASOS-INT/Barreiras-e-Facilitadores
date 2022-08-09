@@ -23,8 +23,6 @@ df_during$scholarity[df_during$scholarity <= 3] <- 1
 df_during$scholarity[df_during$scholarity > 3 & df_during$scholarity <= 5] <- 2
 df_during$scholarity[df_during$scholarity == 6] <- 3
 
-names(df_during)[8] <- 'PA_barrier_percieve'
-
 df_during <- df_during[df_during$sex != 3, ]
 
 sports <- c("running","hiking","cycling",
@@ -33,6 +31,11 @@ sports <- c("running","hiking","cycling",
             "surfing","yoga","pilates","fighting","other_sports")
 
 df_during$PA_number <- rowSums(df_during[, sports])
+
+df_during[, 1:ncol(df_during)] <- lapply(df_during[, 1:ncol(df_during)], as.factor)
+
+`%ni%` <- Negate(`%in%`)
+df_during <- df_during[names(df_during) %ni% sports]
 
 differ_p <- (   df_during$PA_duration == 0 
                 | df_during$PA_intensity == 0 
@@ -55,6 +58,8 @@ table(strange_dp)
 df_during <- df_during[!strange_dp, ]
 
 rownames(df_during) <- 1:nrow(df_during)
+
+names(df_during)[8] <- 'PA_barrier_percieve'
 
 df_during[1:18] <- lapply(df_during[1:18], as.factor)
 df_during_barriers <- df_during[, 1:8]
@@ -79,6 +84,7 @@ df_during_barriers$PA_barrier_time_convenience <- NULL
 df_during_barriers$PA_barrier__tiredness <- NULL
 df_during_barriers$PA_barrier_hard_work <- NULL
 
+df_during_barriers[, 1:ncol(df_during_barriers)] <- lapply(df_during_barriers[, 1:ncol(df_during_barriers)], as.factor)
 names(df_during_barriers)
 
 df_during[1:18] <- lapply(df_during[1:18], as.factor)
@@ -108,4 +114,5 @@ df_during_facilitators$PA_easiness_family_activity <- NULL
 df_during_facilitators$PA_easiness_collective <- NULL
 df_during_facilitators$PA_easiness_unguided <- NULL
 
+df_during_facilitators[, 1:ncol(df_during_facilitators)] <- lapply(df_during_facilitators[, 1:ncol(df_during_facilitators)], as.factor)
 names(df_during_facilitators)

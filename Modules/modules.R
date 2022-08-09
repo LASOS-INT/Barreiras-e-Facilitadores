@@ -539,3 +539,34 @@ f1_score <- function (data, lev=NULL, model = NULL){
     fb_val <- FBeta_Score(data$obs, data$pred, beta = 1)
     c(f1_score = fb_val)
 }
+
+create_cluster_histograms <- function(colors, names, df, best_k) {
+
+    for(col_name in names){
+      myplots <- list()
+      
+      lower <- min(ordered(df[, col_name]))
+      upper <- max(ordered(df[, col_name]))
+      if( lower == "0"){
+        lower <- as.numeric(lower) - 1
+        upper <- as.numeric(upper) - 1
+      } else {
+        lower <- as.numeric(lower)
+        upper <- as.numeric(upper)
+      }
+
+      for(cl in 1:best_k){
+          plt <- ggplot() + geom_bar( 
+            color='black',
+            data=df[df$cluster == cl,], 
+            aes_string(x=col_name, "(..count..)*100/sum(..count..)"),
+            fill=colors[cl],
+            position=position_dodge()
+          ) + ylab("Relative Frequency") + ylim(0, 100) + scale_x_discrete(limit = paste(c(lower:upper)))
+          myplots[[cl]] <- plt 
+      }
+      wrap_plots(myplots)
+      ggsave(path="profiles", file=paste(col_name, ".png", sep=""))
+  }
+
+}
