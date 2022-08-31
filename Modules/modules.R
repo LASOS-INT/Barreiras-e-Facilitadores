@@ -228,8 +228,6 @@ silhouette_values_rock <- function(num_clusters, theta, df, diss_matrix, distmet
       }
       silhouette_coefficient <- (b-a)/pmax(b, a)
       silhouette_sc <- mean(silhouette_coefficient)
-      order <- as.character(sort(as.integer(names(silhouette_coefficient))))
-      silhouette_coefficient <- silhouette_coefficient[order]
       return(list(silhouette_sc, silhouette_coefficient, rock))
 }
 
